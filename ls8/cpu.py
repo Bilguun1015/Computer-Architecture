@@ -8,19 +8,12 @@ class CPU:
     def __init__(self):
         """Construct a new CPU."""
         #memory 
-        self.ram = [0] * 256
+        self.memory = [0] * 256
         #general-purpose registers
-        self.R0 = 0
-        self.R1 = 0
-        self.R2 = 0
-        self.R3 = 0
-        self.R4 = 0
-        self.R5 = 0
-        self.R6 = 0
-        self.R7 = 0
+        self.reg = [0] * 8
         #internal registers
         self.PC = 0
-        self.IR = 0
+        # self.IR = 0
         self.MAR = 0
         self.MDR = 0
         self.FL = 0
@@ -28,34 +21,49 @@ class CPU:
         self.HLT = 0b00000001
         self.LDI = 0b10000010
         self.PRN = 0b01000111
+        self.MUL = 0b10100010
 
 
-    def load(self):
+    def load(self, filename):
         """Load a program into memory."""
+        try:
+            address = 0
+            with open(filename) as f:
+                for line in f:
+                    comment_split = line.split('#')
+                    num = comment_split[0].strip()
 
-        address = 0
+                    if num == '':
+                        continue
+                    
+                    value = int(num, 2)
 
-        # For now, we've just hardcoded a program:
+                    self.memory[address] = value
+                    address += 1
+        except FileNotFoundError:
+            print(f'{sys.argv[0]}: {filename} not found')
+            sys.exit(2)
+        # # For now, we've just hardcoded a program:
 
-        program = [
-            # From print8.ls8
-            0b10000010, # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111, # PRN R0
-            0b00000000,
-            0b00000001, # HLT
-        ]
+        # program = [
+        #     # From print8.ls8
+        #     0b10000010, # LDI R0,8
+        #     0b00000000,
+        #     0b00001000,
+        #     0b01000111, # PRN R0
+        #     0b00000000,
+        #     0b00000001, # HLT
+        # ]
 
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
+        # for instruction in program:
+        #     self.ram[address] = instruction
+        #     address += 1
 
     def ram_read(self, address):
-        return self.ram[address]
+        return self.memory[address]
 
     def ram_write(self, address, value):
-        self.ram[address] = value
+        self.memory[address] = value
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
@@ -63,6 +71,8 @@ class CPU:
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
         #elif op == "SUB": etc
+        elif op == 'MUL':
+            self.reg[reg_a] *= self.reg[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -88,21 +98,36 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
+        print(self.memory)
         running = True
         while running:
             IR = self.ram_read(self.PC)
             if IR == self.HLT:
                 running = False
                 self.PC = 0
+            elif IR == self.MUL:
+                if (IR >> 6) == 2:
+                    operand_a = self.ram_read(self.PC + 1)
+                    operand_b = self.ram_read(self.PC + 2)
+                    self.alu('MUL', (operand_a), (operand_b))
+                    self.PC += 3
             elif IR == self.LDI:
-                address = self.ram_read(self.PC + 1)
-                value = self.ram_read(self.PC + 2)
-                self.ram_write(address, value)
-                self.PC += 3
+                if (IR >> 6) == 2:
+                    operand_a = self.PC + 1
+                    operand_b = self.PC + 2
+                    address = self.ram_read(operand_a)
+                    value = self.ram_read(operand_b)
+                    self.reg[address] = value
+                    self.PC += 3
+                else:
+                    print('Not Enough arguments')
             elif IR == self.PRN:
-                num = self.ram_read(self.PC - 3)
-                print(num)
-                self.PC +=2
+                if (IR >> 6) == 1:
+                    address = self.ram_read(self.PC + 1)
+                    print(self.reg[address])
+                    self.PC +=2
+                else:
+                    print('More than 1 argument given')
             else:
                 print(f"Error: Unknown command: {IR}")
                 sys.exit(1)
