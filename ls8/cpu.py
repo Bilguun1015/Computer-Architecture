@@ -88,10 +88,6 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        IR = self.ram_read(self.PC)
-        operand_a = self.ram_read(self.PC + 1)
-        operand_b = self.ram_read(self.PC + 2)
-        print(IR, operand_a, operand_b)
         running = True
         while running:
             IR = self.ram_read(self.PC)
@@ -99,12 +95,13 @@ class CPU:
                 running = False
                 self.PC = 0
             elif IR == self.LDI:
-                operand_a = self.ram_read(self.PC + 1)
-                operand_b = self.ram_read(self.PC + 2)
-                self.ram[operand_a] = operand_b
+                address = self.ram_read(self.PC + 1)
+                value = self.ram_read(self.PC + 2)
+                self.ram_write(address, value)
                 self.PC += 3
             elif IR == self.PRN:
-                print(self.ram[0])
+                num = self.ram_read(self.PC - 3)
+                print(num)
                 self.PC +=2
             else:
                 print(f"Error: Unknown command: {IR}")
