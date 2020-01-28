@@ -7,7 +7,28 @@ class CPU:
 
     def __init__(self):
         """Construct a new CPU."""
-        pass
+        #memory 
+        self.ram = [0] * 256
+        #general-purpose registers
+        self.R0 = 0
+        self.R1 = 0
+        self.R2 = 0
+        self.R3 = 0
+        self.R4 = 0
+        self.R5 = 0
+        self.R6 = 0
+        self.R7 = 0
+        #internal registers
+        self.PC = 0
+        self.IR = 0
+        self.MAR = 0
+        self.MDR = 0
+        self.FL = 0
+        #commands
+        self.HLT = 0b00000001
+        self.LDI = 0b10000010
+        self.PRN = 0b01000111
+
 
     def load(self):
         """Load a program into memory."""
@@ -30,6 +51,11 @@ class CPU:
             self.ram[address] = instruction
             address += 1
 
+    def ram_read(self, address):
+        return self.ram[address]
+
+    def ram_write(self, address, value):
+        self.ram[address] = value
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
@@ -62,4 +88,24 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        pass
+        IR = self.ram_read(self.PC)
+        operand_a = self.ram_read(self.PC + 1)
+        operand_b = self.ram_read(self.PC + 2)
+        print(IR, operand_a, operand_b)
+        running = True
+        while running:
+            IR = self.ram_read(self.PC)
+            if IR == self.HLT:
+                running = False
+                self.PC = 0
+            elif IR == self.LDI:
+                operand_a = self.ram_read(self.PC + 1)
+                operand_b = self.ram_read(self.PC + 2)
+                self.ram[operand_a] = operand_b
+                self.PC += 3
+            elif IR == self.PRN:
+                print(self.ram[0])
+                self.PC +=2
+            else:
+                print(f"Error: Unknown command: {IR}")
+                sys.exit(1)
