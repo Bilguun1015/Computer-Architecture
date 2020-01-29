@@ -11,7 +11,6 @@ class CPU:
         self.memory = [0] * 256
         #general-purpose registers
         self.reg = [0] * 8
-        self.SP = 7
         #internal registers
         self.PC = 0
         # self.IR = 0
@@ -115,15 +114,15 @@ class CPU:
     def handle_PUSH(self):
         address = self.ram_read(self.PC + 1)
         value = self.reg[address]
-        self.reg[self.SP] -= 1
-        self.memory[self.reg[self.SP]] = value
+        self.reg[7] -= 1
+        self.memory[self.reg[7]] = value
         self.PC += 2
 
     def handle_POP(self):
         address = self.memory[self.PC + 1]
-        value = self.memory[self.reg[self.SP]]
+        value = self.memory[self.reg[7]]
         self.reg[address] = value
-        self.reg[self.SP] += 1
+        self.reg[7] += 1
         self.PC += 2
 
     def run(self):
