@@ -11,6 +11,7 @@ class CPU:
         self.memory = [0] * 256
         #general-purpose registers
         self.reg = [0] * 8
+        self.SP = 7
         #internal registers
         self.PC = 0
         # self.IR = 0
@@ -28,8 +29,11 @@ class CPU:
         self.branchtable[0b10000010] = self.handle_LDI
         self.branchtable[0b01000111] = self.handle_PRN
         self.branchtable[0b10100010] = self.handle_MUL
+        self.branchtable[0b10100000] = self.handle_ADD
         self.branchtable[0b01000101] = self.handle_PUSH
         self.branchtable[0b01000110] = self.handle_POP
+        self.branchtable[0b01010000] = self.handle_CALL
+        self.branchtable[0b00010001] = self.handle_RET
 
     def load(self, filename):
         """Load a program into memory."""
@@ -111,10 +115,16 @@ class CPU:
         self.alu('MUL', (operand_a), (operand_b))
         self.PC += 3
 
+    def handle_ADD(self):
+        operand_a = self.ram_read(self.PC + 1)
+        operand_b = self.ram_read(self.PC + 2)
+        self.alu('ADD', (operand_a), (operand_b))
+        self.PC += 3
+
     def handle_PUSH(self):
         address = self.ram_read(self.PC + 1)
         value = self.reg[address]
-        self.reg[7] -= 1
+        self.reg[self.SP] -= 1
         self.memory[self.reg[7]] = value
         self.PC += 2
 
@@ -122,12 +132,25 @@ class CPU:
         address = self.memory[self.PC + 1]
         value = self.memory[self.reg[7]]
         self.reg[address] = value
-        self.reg[7] += 1
+        self.reg[self.SP] += 1
         self.PC += 2
+    
+    def handle_CALL(self):
+        return_address = self.PC + 2
+        self.reg[self.SP] -= 1
+        self.memory[self.reg[self.SP]] = return_address
+        address = self.ram_read(self.PC + 1)
+        subroutine_address = self.reg[address]
+        self.PC = subroutine_address
+
+    def handle_RET(self):
+        return_address = self.ram_read(self.reg[self.SP])
+        self.reg[self.SP] += 1
+
+        self.PC = return_address
 
     def run(self):
         """Run the CPU."""
-        print(self.memory)
         running = True
         while running:
             IR = self.ram_read(self.PC)
